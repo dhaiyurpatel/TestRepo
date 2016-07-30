@@ -3,6 +3,7 @@ package info.androidhive.materialdesign.activity;
 /**
  * Created by Ravi on 29/07/15.
  */
+
 import android.app.Activity;
 import android.app.ProgressDialog;
 import android.os.AsyncTask;
@@ -18,12 +19,21 @@ import android.widget.ListView;
 import android.widget.SimpleAdapter;
 import android.widget.TextView;
 
+import org.apache.http.NameValuePair;
+import org.apache.http.message.BasicNameValuePair;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+
+import info.androidhive.materialdesign.R;
+import info.androidhive.materialdesign.adapter.HomeAdapter;
+import info.androidhive.materialdesign.app.AppConfig;
+import info.androidhive.materialdesign.helper.ServiceHandler;
+import info.androidhive.materialdesign.model.HomeBean;
 
 
 public class HomeFragment extends Fragment {
@@ -31,26 +41,24 @@ public class HomeFragment extends Fragment {
     private ProgressDialog pDialog;
 
     // URL to get contacts JSON
-    private static String url = "http://api.androidhive.info/contacts/";
+
     ListView lv;
 
     // JSON Node names
-    private static final String TAG_CONTACTS = "contacts";
+    private static final String TAG_RESULT = "result";
+    private static final String TAG_MEMBER = "member";
     private static final String TAG_ID = "id";
-    private static final String TAG_NAME = "name";
-    private static final String TAG_EMAIL = "email";
-    private static final String TAG_ADDRESS = "address";
-    private static final String TAG_GENDER = "gender";
-    private static final String TAG_PHONE = "phone";
-    private static final String TAG_PHONE_MOBILE = "mobile";
-    private static final String TAG_PHONE_HOME = "home";
-    private static final String TAG_PHONE_OFFICE = "office";
+    private static final String TAG_NAME = "firstname";
+    private static final String TAG_RELATIONSHIP = "relationship";
+    private static final String TAG_PHOTO = "photo";
+
 
     // contacts JSONArray
-    JSONArray contacts = null;
+    JSONArray resultarray = null;
+    JSONArray memberarray = null;
 
     // Hashmap for ListView
-    ArrayList<HashMap<String, String>> contactList;
+    ArrayList<HomeBean> contactList;
 
     public HomeFragment() {
         // Required empty public constructor
@@ -67,24 +75,10 @@ public class HomeFragment extends Fragment {
                              Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_home, container, false);
 
-        /*rootView.findViewById(R.id.click).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // We normally won't show the welcome slider again in real app
-                // but this is for testing
-                PrefManager prefManager = new PrefManager(getActivity());
-
-                // make first time launch TRUE
-                prefManager.setFirstTimeLaunch(true);
-
-                Intent i = new Intent(getActivity(), WelcomeActivity.class);
-                startActivity(i);
-
-            }
-        });*/
 
 
-        contactList = new ArrayList<HashMap<String, String>>();
+
+        contactList = new ArrayList<HomeBean>();
 
         lv = (ListView)rootView.findViewById(R.id.list);
 
@@ -101,21 +95,11 @@ public class HomeFragment extends Fragment {
                         .getText().toString();
                 String description = ((TextView) view.findViewById(R.id.mobile))
                         .getText().toString();
-
-                // Starting single contact activity
-               /* Intent in = new Intent(getActivity(),
-                        LoginScreen.class);
-                in.putExtra(TAG_NAME, name);
-                in.putExtra(TAG_EMAIL, cost);
-                in.putExtra(TAG_PHONE_MOBILE, description);
-                startActivity(in);*/
-
-
             }
 
         });
 
-        new GetContacts().execute();
+        new GetMembers().execute();
 
 
         // Inflate the layout for this fragment
@@ -125,7 +109,7 @@ public class HomeFragment extends Fragment {
     /**
      * Async task class to get json by making HTTP call
      * */
-    private class GetContacts extends AsyncTask<Void, Void, Void> {
+    private class GetMembers extends AsyncTask<String, String, String> {
 
         @Override
         protected void onPreExecute() {
@@ -139,12 +123,15 @@ public class HomeFragment extends Fragment {
         }
 
         @Override
-        protected Void doInBackground(Void... arg0) {
+        protected String doInBackground(String... args) {
             // Creating service handler class instance
+
+            List<NameValuePair> params = new ArrayList<NameValuePair>();
+            params.add(new BasicNameValuePair("mobile", "9999999999"));
             ServiceHandler sh = new ServiceHandler();
 
             // Making a request to url and getting response
-            String jsonStr = sh.makeServiceCall(url, ServiceHandler.GET);
+            String jsonStr = sh.makeServiceCall(AppConfig.GET_MEMBERS_FROM_LOGIN, ServiceHandler.POST, params);
             Log.d("Response: ", "> " + jsonStr);
 
             if (jsonStr != null) {
@@ -152,36 +139,7 @@ public class HomeFragment extends Fragment {
                     JSONObject jsonObj = new JSONObject(jsonStr);
 
                     // Getting JSON Array node
-                    contacts = jsonObj.getJSONArray(TAG_CONTACTS);
 
-                    // looping through All Contacts
-                    for (int i = 0; i < contacts.length(); i++) {
-                        JSONObject c = contacts.getJSONObject(i);
-
-                        String id = c.getString(TAG_ID);
-                        String name = c.getString(TAG_NAME);
-                        String email = c.getString(TAG_EMAIL);
-                        String address = c.getString(TAG_ADDRESS);
-                        String gender = c.getString(TAG_GENDER);
-
-                        // Phone node is JSON Object
-                        JSONObject phone = c.getJSONObject(TAG_PHONE);
-                        String mobile = phone.getString(TAG_PHONE_MOBILE);
-                        String home = phone.getString(TAG_PHONE_HOME);
-                        String office = phone.getString(TAG_PHONE_OFFICE);
-
-                        // tmp hashmap for single contact
-                        HashMap<String, String> contact = new HashMap<String, String>();
-
-                        // adding each child node to HashMap key => value
-                        contact.put(TAG_ID, id);
-                        contact.put(TAG_NAME, name);
-                        contact.put(TAG_EMAIL, email);
-                        contact.put(TAG_PHONE_MOBILE, mobile);
-
-                        // adding contact to contact list
-                        contactList.add(contact);
-                    }
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
@@ -189,24 +147,49 @@ public class HomeFragment extends Fragment {
                 Log.e("ServiceHandler", "Couldn't get any data from the url");
             }
 
-            return null;
+            return jsonStr;
         }
 
         @Override
-        protected void onPostExecute(Void result) {
+        protected void onPostExecute(String result) {
             super.onPostExecute(result);
             // Dismiss the progress dialog
             if (pDialog.isShowing())
                 pDialog.dismiss();
 
-            ListAdapter adapter = new SimpleAdapter(
-                    getActivity(), contactList,
-                    R.layout.list_item, new String[] { TAG_NAME, TAG_EMAIL,
-                    TAG_PHONE_MOBILE }, new int[] { R.id.name,
-                    R.id.email, R.id.mobile });
+            Log.d("Response: ", "> " + result);
+            if (result != null) {
+                try {
+                    JSONObject jsonObj = new JSONObject(result);
+                    String result_object = jsonObj.optString("result");
+                    Log.d("Response of result : ", "> " + result_object);
 
-            lv.setAdapter(adapter);
+                    JSONObject member = new JSONObject(result_object);
+                    memberarray =    member.getJSONArray(TAG_MEMBER);
 
+
+
+                    // looping through All Contacts
+                    for (int i = 0; i < memberarray.length(); i++) {
+                        JSONObject c = memberarray.getJSONObject(i);
+
+                        HomeBean bean=new HomeBean();
+                        bean.setmName(c.getString(TAG_NAME));
+                        bean.setmPhoto(c.getString(TAG_PHOTO));
+                        bean.setmReletionship(c.getString(TAG_RELATIONSHIP));
+                        bean.setmId(c.getString(TAG_ID));
+
+                        contactList.add(bean);
+                    }
+                    HomeAdapter adp=new HomeAdapter(getActivity(),contactList);
+                    lv.setAdapter(adp);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+            else {
+                Log.e("ServiceHandler", "Couldn't get any data from the url");
+            }
         }
 
     }

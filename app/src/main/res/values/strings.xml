@@ -49,4 +49,10 @@
     <string name="help"><u>Help</u></string>
 
 
+
+    <!-- activity_verify_otp_screen -->
+    <string name="otp_desc">One Time Password (OTP) has been sent to your mobile 9876543210, please enter the same here to login</string>
+    <string name="resend">Resend Otp</string>
+
+
 </resources>

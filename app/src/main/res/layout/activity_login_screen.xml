@@ -48,19 +48,21 @@
             android:layout_height="match_parent">
 
             <EditText
-                android:id="@+id/txtEmail"
+                android:id="@+id/txt_login_mobile"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginRight="0dp"
+                android:inputType="number"
+                android:maxLength="10"
                 android:hint="Mobile No" />
 
             <Button
-                android:id="@+id/btnLogin"
+                android:id="@+id/btn_login_getotp"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="28dp"
                 android:background="@color/btn_disable_background"
-                android:text="Login" />
+                android:text="GET OTP" />
 
             <TextView
                 android:layout_width="fill_parent"
